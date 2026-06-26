@@ -74,17 +74,107 @@ function toggleInspector() {
       .empty{padding:8px 10px;color:#999;}
       .bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1e1e22;color:#eee;font:12px -apple-system,sans-serif;border-radius:999px;padding:8px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:auto;white-space:nowrap;}
       .bar b{color:#fff;} .bar span{color:#999;}
-      .bar button{all:unset;cursor:pointer;background:#5b53ff;color:#fff;padding:5px 10px;border-radius:6px;}
+      .bar button{all:unset;cursor:pointer;color:#fff;padding:5px 10px;border-radius:6px;}
+      .bar button.ghost{background:#3a3a40;display:flex;align-items:center;gap:5px;}
+      .bar button.ghost:hover{background:#4a4a52;}
+      .bar button.primary{background:#5b53ff;}
+      .bar button.primary:hover{background:#4a43e0;}
+      .box.pin{border-color:#3ddc97;background:rgba(61,220,151,.10);}
+      .tip.pin,.tip.locked{pointer-events:auto;cursor:grab;user-select:none;}
+      .tip.pin:active,.tip.locked:active{cursor:grabbing;}
+      .tip.pin h4{display:flex;align-items:center;gap:8px;}
+      .close{all:unset;cursor:pointer;margin-left:auto;color:#ff8a8a;font-size:13px;line-height:1;padding:1px 5px;border-radius:4px;}
+      .close:hover{background:#4a1f1f;}
+      .bar button.off{background:#2a2a30;color:#888;}
     </style>
+    <div class="pins"></div>
     <div class="box" hidden></div>
     <div class="tip" hidden></div>
-    <div class="bar"><b>Inspecting tokens</b><span>click = lock · dbl-click = parent · Esc = exit</span><button id="x">Exit</button></div>`;
+    <div class="bar">
+      <b>Inspecting tokens</b>
+      <span id="hint">click = lock · dbl-click = parent · Esc = exit</span>
+      <button id="hover" class="ghost" title="Toggle the live hover highlight">Hover: on</button>
+      <button id="clear" class="ghost" title="Remove all pinned overlays">Clear</button>
+      <button id="shot" class="ghost" title="Capture a PNG of the visible area">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M9 3l-1.7 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.3L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+        Screenshot
+      </button>
+      <button id="x" class="primary">Exit</button>
+    </div>`;
 
   const box = shadow.querySelector('.box');
   const tip = shadow.querySelector('.tip');
+  const bar = shadow.querySelector('.bar');
+  const pinsEl = shadow.querySelector('.pins');
+  const hintEl = shadow.getElementById('hint');
   shadow.getElementById('x').addEventListener('click', () => destroy());
+  shadow.getElementById('shot').addEventListener('click', () => capture());
+  shadow.getElementById('clear').addEventListener('click', () => clearPins());
 
-  let current = null, locked = false;
+  // Live hover highlight can be paused so it stops following the cursor (and
+  // doesn't sit over an element while you line up a screenshot or review pins).
+  let hoverOn = true;
+  const hoverBtn = shadow.getElementById('hover');
+  hoverBtn.addEventListener('click', () => {
+    hoverOn = !hoverOn;
+    hoverBtn.textContent = hoverOn ? 'Hover: on' : 'Hover: off';
+    hoverBtn.classList.toggle('off', !hoverOn);
+    if (!hoverOn) { box.hidden = true; tip.hidden = true; }
+  });
+
+  // Visual-audit mode: clicks pin persistent overlays instead of moving one.
+  let auditMode = false;
+  const pins = [];
+  const updateHint = () => {
+    hintEl.textContent = auditMode
+      ? 'click = pin · dbl-click = parent · Esc = exit'
+      : 'click = lock · dbl-click = parent · Esc = exit';
+  };
+  const onStorage = (changes, area) => {
+    if (area === 'local' && changes.dtfAuditMode) {
+      auditMode = changes.dtfAuditMode.newValue === true;
+      updateHint();
+    }
+  };
+  chrome.storage.onChanged.addListener(onStorage);
+  chrome.storage.local.get('dtfAuditMode', (res) => { auditMode = res.dtfAuditMode === true; updateHint(); });
+
+  function capture() {
+    // The control toolbar is never in the shot. The "Include overlay" preference
+    // decides whether the highlight box + token tooltip are kept (annotated shot)
+    // or hidden too (clean DevTools-style capture). Wait for a real repaint, then
+    // the worker captures the tab and saves the PNG.
+    const tag = current ? shortSel(current).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') : 'page';
+    chrome.storage.local.get('dtfIncludeOverlay', (res) => {
+      const includeOverlay = res.dtfIncludeOverlay !== false; // default: include
+      // Always hide the toolbar, and the transient live hover highlight unless
+      // it's locked (a locked tooltip is the annotation in normal mode). Pins are
+      // kept when including the overlay. Off => hide everything for a clean shot.
+      const hideLive = !locked;
+      if (includeOverlay) {
+        bar.style.visibility = 'hidden';
+        if (hideLive) { box.style.display = 'none'; tip.style.display = 'none'; }
+      } else {
+        host.style.display = 'none';
+      }
+      setTimeout(() => {
+        chrome.runtime.sendMessage(
+          { type: 'dtf:capture', filename: `design-tokens-${tag || 'page'}.png` },
+          (resp) => {
+            bar.style.visibility = '';
+            box.style.display = '';
+            tip.style.display = '';
+            host.style.display = '';
+            if (chrome.runtime.lastError || !resp || !resp.ok) {
+              console.warn('[Design Token Finder] screenshot failed:', chrome.runtime.lastError?.message || resp?.error);
+            }
+          }
+        );
+      }, 120);
+    });
+  }
+
+  let current = null, locked = false, clickTimer = null, dragging = false;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const shortSel = (el) => {
@@ -143,9 +233,9 @@ function toggleInspector() {
     return usages;
   }
 
-  function renderTip(el) {
+  function tokensHtml(el) {
     const usages = collect(el);
-    const items = usages.length
+    return usages.length
       ? '<ul>' + usages.map((u) =>
           `<li>${u.isColor
             ? `<span class="sw" style="background:${esc(u.resolved)}"></span>`
@@ -154,25 +244,75 @@ function toggleInspector() {
           `<span class="rv">${esc(u.resolved || '')}</span></li>`
         ).join('') + '</ul>'
       : '<div class="empty">No token variables used here.</div>';
-    tip.innerHTML = `<h4>${esc(shortSel(el))}${locked ? ' 🔒' : ''}</h4>${items}`;
-    tip.hidden = false;
   }
 
-  function position(el) {
+  function renderTip(el) {
+    tip.innerHTML = `<h4>${esc(shortSel(el))}${locked ? ' 🔒' : ''}</h4>${tokensHtml(el)}`;
+    tip.hidden = false;
+    tip._dragged = false; // re-rendered for a new target -> reposition fresh
+  }
+
+  // Position a box/tip pair over `el`. Shared by the live highlight and pins.
+  // A tooltip the user has dragged keeps its position (only the box re-anchors).
+  function place(boxEl, tipEl, el) {
     const r = el.getBoundingClientRect();
-    box.style.left = r.left + 'px';
-    box.style.top = r.top + 'px';
-    box.style.width = r.width + 'px';
-    box.style.height = r.height + 'px';
-    box.hidden = false;
-    box.classList.toggle('lock', locked);
-    const tw = tip.offsetWidth || 340, th = tip.offsetHeight || 100;
+    boxEl.style.left = r.left + 'px';
+    boxEl.style.top = r.top + 'px';
+    boxEl.style.width = r.width + 'px';
+    boxEl.style.height = r.height + 'px';
+    boxEl.hidden = false;
+    if (tipEl._dragged) return;
+    const tw = tipEl.offsetWidth || 340, th = tipEl.offsetHeight || 100;
     let tx = Math.min(r.left, window.innerWidth - tw - 8);
     let ty = r.bottom + 8;
     if (ty + th > window.innerHeight) ty = Math.max(8, r.top - th - 8);
-    tip.style.left = Math.max(8, tx) + 'px';
-    tip.style.top = ty + 'px';
+    tipEl.style.left = Math.max(8, tx) + 'px';
+    tipEl.style.top = ty + 'px';
   }
+
+  function position(el) {
+    place(box, tip, el);
+    box.classList.toggle('lock', locked);
+    tip.classList.toggle('locked', locked); // enables pointer-events + drag
+  }
+
+  // Drag a tooltip from anywhere on its surface (locked live tip or pinned tips).
+  // The close button is excluded, and a small movement threshold keeps plain
+  // clicks working. The dragged tip is clamped so it can't be lost off-screen.
+  function onDragStart(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest && e.target.closest('.close')) return;
+    const tipEl = e.target.closest && e.target.closest('.tip');
+    if (!tipEl) return;
+    const startX = e.clientX, startY = e.clientY;
+    const r = tipEl.getBoundingClientRect();
+    const offX = startX - r.left, offY = startY - r.top;
+    let active = false;
+    const move = (ev) => {
+      if (!active) {
+        if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) < 4) return;
+        active = true;
+        dragging = true;
+        tipEl._dragged = true;
+        const sel = window.getSelection && window.getSelection();
+        if (sel) sel.removeAllRanges();
+      }
+      ev.preventDefault();
+      const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+      const nx = Math.max(-(w - 80), Math.min(window.innerWidth - 80, ev.clientX - offX));
+      const ny = Math.max(0, Math.min(window.innerHeight - 28, ev.clientY - offY));
+      tipEl.style.left = nx + 'px';
+      tipEl.style.top = ny + 'px';
+    };
+    const up = () => {
+      dragging = false;
+      document.removeEventListener('mousemove', move, true);
+      document.removeEventListener('mouseup', up, true);
+    };
+    document.addEventListener('mousemove', move, true);
+    document.addEventListener('mouseup', up, true);
+  }
+  shadow.addEventListener('mousedown', onDragStart, true);
 
   function setTarget(el) {
     if (!el || el === document.documentElement) return;
@@ -181,12 +321,60 @@ function toggleInspector() {
     position(el);
   }
 
+  // Persistent overlay (audit mode). Stays put with its own close button.
+  function addPin(el) {
+    if (!el || el === document.documentElement) return;
+    const b = document.createElement('div');
+    b.className = 'box pin';
+    const t = document.createElement('div');
+    t.className = 'tip pin';
+    t.innerHTML = `<h4>${esc(shortSel(el))}<button class="close" title="Remove">✕</button></h4>${tokensHtml(el)}`;
+    pinsEl.appendChild(b);
+    pinsEl.appendChild(t);
+    const pin = { el, box: b, tip: t };
+    pins.push(pin);
+    t.querySelector('.close').addEventListener('click', () => removePin(pin));
+    place(b, t, el);
+  }
+
+  function removePin(pin) {
+    pin.box.remove();
+    pin.tip.remove();
+    const i = pins.indexOf(pin);
+    if (i >= 0) pins.splice(i, 1);
+  }
+
+  function clearPins() {
+    for (const p of pins) { p.box.remove(); p.tip.remove(); }
+    pins.length = 0;
+  }
+
   const inHost = (e) => e.composedPath().includes(host);
-  const onMove = (e) => { if (locked || inHost(e)) return; if (e.target && e.target !== current) setTarget(e.target); };
-  const onClick = (e) => { if (inHost(e)) return; e.preventDefault(); e.stopPropagation(); locked = true; setTarget(e.target); };
-  const onDbl = (e) => { if (inHost(e)) return; e.preventDefault(); e.stopPropagation(); const p = current && current.parentElement; if (p) { locked = true; setTarget(p); } };
+  const onMove = (e) => { if (!hoverOn || dragging || locked || inHost(e)) return; if (e.target && e.target !== current) setTarget(e.target); };
+  const onClick = (e) => {
+    if (inHost(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (auditMode) {
+      // Disambiguate single vs double click so dbl-click-to-climb doesn't pin.
+      const el = hoverOn ? (current || e.target) : e.target;
+      if (clickTimer) clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => { clickTimer = null; addPin(el); }, 220);
+    } else {
+      locked = true;
+      setTarget(e.target);
+    }
+  };
+  const onDbl = (e) => {
+    if (inHost(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+    const p = current && current.parentElement;
+    if (p) { if (!auditMode) locked = true; setTarget(p); }
+  };
   const onKey = (e) => { if (e.key === 'Escape') { if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy(); } };
-  const onScroll = () => { if (current) position(current); };
+  const onScroll = () => { if (current && (locked || hoverOn)) position(current); for (const p of pins) place(p.box, p.tip, p.el); };
 
   document.addEventListener('mousemove', onMove, true);
   document.addEventListener('click', onClick, true);
@@ -202,6 +390,8 @@ function toggleInspector() {
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('scroll', onScroll, true);
     window.removeEventListener('resize', onScroll, true);
+    chrome.storage.onChanged.removeListener(onStorage);
+    if (clickTimer) clearTimeout(clickTimer);
     host.remove();
     cursorStyle.remove();
     delete window[KEY];
@@ -311,7 +501,22 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+const OVERLAY_KEY = 'dtfIncludeOverlay';
+const AUDIT_KEY = 'dtfAuditMode';
+async function initPrefs() {
+  const res = await chrome.storage.local.get([OVERLAY_KEY, AUDIT_KEY]);
+  $('overlay-shot').checked = res[OVERLAY_KEY] !== false; // default: on
+  $('audit-mode').checked = res[AUDIT_KEY] === true;       // default: off
+}
+$('overlay-shot').addEventListener('change', (e) => {
+  chrome.storage.local.set({ [OVERLAY_KEY]: e.target.checked });
+});
+$('audit-mode').addEventListener('change', (e) => {
+  chrome.storage.local.set({ [AUDIT_KEY]: e.target.checked });
+});
+
 $('filter').addEventListener('input', render);
 $('refresh').addEventListener('click', scan);
 scan();
 refreshInspectButton();
+initPrefs();

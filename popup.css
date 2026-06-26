@@ -20,6 +20,11 @@ header button:hover { background: #e4e4e8; }
 }
 .inspect:hover { background: #f6f6f9; }
 .inspect.active { background: #5b53ff; border-color: #5b53ff; color: #fff; }
+.opt {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: #555; margin: 0 0 10px 2px; cursor: pointer;
+}
+.opt input { margin: 0; }
 #filter {
   width: 100%; padding: 8px 10px; border: 1px solid #d6d6db; border-radius: 6px;
   font: inherit; margin-bottom: 10px;

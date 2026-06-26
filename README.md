@@ -24,8 +24,21 @@ page enters inspect mode:
 - **Hover** an element to highlight it and see the design tokens it uses
   (e.g. `color: var(--colorTextLinkDefault)`) with each token's resolved value + swatch.
 - **Click** to lock the selection so it stops following the mouse.
+- **Drag** a tooltip from anywhere on it to move it out of the way (works for both the
+  locked tooltip and pinned ones; the highlight box stays anchored to the element). A small
+  drag threshold keeps plain clicks working, and tooltips are clamped on-screen.
 - **Double-click** to climb to the parent element — handy for nested elements; keep
   double-clicking to walk outward until you land on the right one.
+- **Keep overlays open (visual audit)** — tick this option in the popup (off by default) to
+  switch click behaviour: each click *pins* a persistent green overlay so you can stack up
+  many elements at once for a visual audit. Remove one with its **✕**, or all of them with
+  **Clear** in the toolbar.
+- **Hover** (toolbar button) toggles the live cursor-following highlight off/on — useful so
+  the purple highlight doesn't sit over an element while you review pins or line up a shot.
+- **Screenshot** (toolbar button) saves a PNG of the visible tab to your Downloads folder.
+  By default pinned overlays (and a *locked* tooltip) are kept in the shot; the transient
+  live hover highlight and the toolbar are always excluded. Untick **Include overlay in
+  screenshot** in the popup for a fully clean DevTools-style capture.
 - **Esc** unlocks (then **Esc** again, or the **Exit** button, leaves inspect mode).
 
 Reopen the popup and click **Stop inspecting** to turn it off.
