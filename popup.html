@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>Design Token Finder</h1>
+    <button id="refresh" title="Re-scan">↻</button>
+  </header>
+
+  <button id="inspect" class="inspect">
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path fill="currentColor" d="M7 2l13 8.5-5.7 1.2 3.5 6.4-2.6 1.4-3.5-6.4L7 18z"/>
+    </svg>
+    <span id="inspect-label">View Tokens</span>
+  </button>
+
+  <input id="filter" type="search" placeholder="Filter tokens…" autocomplete="off" />
+
+  <div id="status" class="status">Scanning…</div>
+  <ul id="list"></ul>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Design Token Finder",
+  "version": "0.1.0",
+  "description": "Find the CSS variables (design tokens) used on the current page.",
+  "permissions": ["scripting", "activeTab"],
+  "action": {
+    "default_title": "Design Token Finder",
+    "default_popup": "popup.html"
+  }
+}

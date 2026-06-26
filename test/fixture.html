@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Token Checker Fixture</title>
+  <style>
+    :root {
+      --color-primary: #5b53ff;   /* matches token */
+      --color-text: #1e1e22;      /* matches token */
+      --color-surface: #ffffff;   /* matches token */
+      --color-danger: #ff0000;    /* DRIFT: token is #e5484d */
+      --spacing-md: 16px;         /* matches token */
+      --spacing-sm: 10px;         /* DRIFT: token is 8px */
+      --textBodyBoldMedium: 700 16px/1.5 Inter, sans-serif;  /* font shorthand token */
+      --textBody: var(--textBodyBoldMedium);                 /* chained var token */
+    }
+    body {
+      color: var(--color-text);
+      background: var(--color-surface);
+      font-family: Inter, sans-serif;
+      margin: 0; padding: var(--spacing-md);
+    }
+    .ok-button {
+      background: var(--color-primary);   /* good: via token var */
+      color: #fff;
+      padding: var(--spacing-md);
+      border: 0; border-radius: 8px;
+    }
+    .card {
+      padding: var(--spacing-lg);
+      background: var(--color-surface);
+      border-radius: var(--spacing-sm);
+      border: 1px solid var(--color-text);
+      margin-top: var(--spacing-md);
+    }
+    .card .title { color: var(--color-primary); font: var(--textBody); }
+    .card .body  { color: var(--color-text); }
+  </style>
+</head>
+<body>
+  <h1>Design Token Checker — test fixture</h1>
+
+  <!-- GOOD: uses tokens via CSS variables -->
+  <button class="ok-button">Uses tokens (should pass)</button>
+
+  <!-- HARDCODED: literal value that equals a token → expect ⚠ suggest --color-primary -->
+  <button style="background: #5b53ff; color: #fff; padding: 16px; border: 0; border-radius: 8px;">
+    Hardcoded primary
+  </button>
+
+  <!-- OFF-SYSTEM color: #ff8800 matches no token -->
+  <p style="color: #ff8800;">Off-system color</p>
+
+  <!-- OFF-SYSTEM spacing: 13px matches no spacing token -->
+  <div style="padding: 13px; background: #ffffff;">Off-system padding (13px)</div>
+
+  <!-- HARDCODED spacing: 24px equals spacing.lg token -->
+  <div style="margin-top: 24px;">Hardcoded margin equal to spacing.lg</div>
+
+  <!-- Element that reads the danger var -->
+  <p style="color: var(--color-danger);">Danger text</p>
+
+  <!-- Nested block for testing inspect mode: hover the title (child), then
+       double-click to climb to .card (parent) and see its tokens. -->
+  <div class="card">
+    <div class="title">Card title (uses --color-primary)</div>
+    <p class="body">Card body text. Hover me, then double-click to select the card.</p>
+  </div>
+</body>
+</html>
