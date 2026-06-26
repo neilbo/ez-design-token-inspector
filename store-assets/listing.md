@@ -3,7 +3,7 @@
 Paste these into the Developer Dashboard fields.
 
 ## Name
-Design Token Finder
+Design Token Inspector
 
 ## Summary (≤132 chars)
 Find the CSS variables (design tokens) on any page and inspect which tokens each element uses.
@@ -12,7 +12,7 @@ Find the CSS variables (design tokens) on any page and inspect which tokens each
 Developer Tools
 
 ## Detailed description
-Design Token Finder helps designers and developers see how a website uses CSS
+Design Token Inspector helps designers and developers see how a website uses CSS
 custom properties — its "design tokens".
 
 • Token list — open the popup to list every CSS variable defined on the current

@@ -1,4 +1,4 @@
-# Design Token Finder
+# Design Token Inspector
 
 A tiny Chrome extension (Manifest V3) that lists the **CSS variables (design tokens)**
 used on the current page — e.g. `--colorTextLinkDefault` — with their resolved values

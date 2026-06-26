@@ -166,7 +166,7 @@ function toggleInspector() {
             tip.style.display = '';
             host.style.display = '';
             if (chrome.runtime.lastError || !resp || !resp.ok) {
-              console.warn('[Design Token Finder] screenshot failed:', chrome.runtime.lastError?.message || resp?.error);
+              console.warn('[Design Token Inspector] screenshot failed:', chrome.runtime.lastError?.message || resp?.error);
             }
           }
         );

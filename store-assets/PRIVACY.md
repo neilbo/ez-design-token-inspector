@@ -1,8 +1,8 @@
-# Privacy Policy — Design Token Finder
+# Privacy Policy — Design Token Inspector
 
 _Last updated: 2026-06-26_
 
-Design Token Finder does **not** collect, store, transmit, or sell any personal
+Design Token Inspector does **not** collect, store, transmit, or sell any personal
 or browsing data.
 
 ## What the extension does

@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 VER=$(node -p "require('./manifest.json').version")
-OUT="dist/design-token-finder-${VER}.zip"
+OUT="dist/design-token-inspector-${VER}.zip"
 
 rm -rf dist
 mkdir -p dist
