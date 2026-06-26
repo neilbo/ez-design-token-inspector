@@ -89,8 +89,13 @@ function toggleInspector() {
       .tip.pin,.tip.locked{pointer-events:auto;cursor:grab;user-select:none;}
       .tip.pin:active,.tip.locked:active{cursor:grabbing;}
       .tip.pin h4{display:flex;align-items:center;gap:8px;}
-      .close{all:unset;cursor:pointer;margin-left:auto;color:#ff8a8a;font-size:13px;line-height:1;padding:1px 5px;border-radius:4px;}
+      .note{all:unset;cursor:pointer;margin-left:auto;color:#c8c8cc;font-size:14px;line-height:1;padding:1px 5px;border-radius:4px;}
+      .note:hover{background:#3a3a40;}
+      .note.on{color:#ffce5b;}
+      .close{all:unset;cursor:pointer;color:#ff8a8a;font-size:14px;line-height:1;padding:1px 5px;border-radius:4px;}
       .close:hover{background:#4a1f1f;}
+      .note-edit{padding:7px 10px;border-top:1px solid #34343a;color:#eee;font:12px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;min-height:20px;outline:none;-webkit-user-select:text;user-select:text;white-space:pre-wrap;word-break:break-word;}
+      .note-edit:empty:before{content:attr(data-ph);color:#777;}
       .bar button.off{background:#2a2a30;color:#888;}
       .bar button .key{color:inherit;opacity:.7;font-size:14px;margin-left:2px;}
     </style>
@@ -310,7 +315,7 @@ function toggleInspector() {
   // clicks working. The dragged tip is clamped so it can't be lost off-screen.
   function onDragStart(e) {
     if (e.button !== 0) return;
-    if (e.target.closest && e.target.closest('.close')) return;
+    if (e.target.closest && e.target.closest('.close, .note, .note-edit')) return;
     const tipEl = e.target.closest && e.target.closest('.tip');
     if (!tipEl) return;
     const startX = e.clientX, startY = e.clientY;
@@ -397,7 +402,7 @@ function toggleInspector() {
     // A colour ring via box-shadow keeps the tooltip's existing drop shadow and
     // doesn't shift layout the way a border would.
     t.style.boxShadow = `0 0 0 2px ${color}, 0 8px 24px rgba(0,0,0,.35)`;
-    t.innerHTML = `<h4>${esc(shortSel(el))}<button class="close" title="Remove">✕</button></h4>${tokensHtml(el)}`;
+    t.innerHTML = `<h4>${esc(shortSel(el))}<button class="note" title="Add a note">✎</button><button class="close" title="Remove">✕</button></h4>${tokensHtml(el)}<div class="note-edit" contenteditable="true" data-ph="Add a note…" hidden></div>`;
     const line = document.createElementNS(SVG_NS, 'line');
     line.setAttribute('stroke', color);
     const dot = document.createElementNS(SVG_NS, 'circle');
@@ -410,6 +415,19 @@ function toggleInspector() {
     const pin = { el, box: b, tip: t, line, dot, color };
     pins.push(pin);
     t.querySelector('.close').addEventListener('click', () => removePin(pin));
+    // Note editor: the button reveals an inline editable field for jotting notes.
+    const noteBtn = t.querySelector('.note');
+    const noteEl = t.querySelector('.note-edit');
+    noteBtn.addEventListener('click', () => {
+      noteEl.hidden = false;
+      noteBtn.classList.add('on');
+      noteEl.focus();
+      const sel = window.getSelection && window.getSelection();
+      if (sel) { sel.selectAllChildren(noteEl); sel.collapseToEnd(); }
+      updateLink(pin);
+    });
+    // The tooltip grows as you type, so keep the connector anchored to its edge.
+    noteEl.addEventListener('input', () => updateLink(pin));
     place(b, t, el);
     updateLink(pin);
   }
@@ -452,15 +470,21 @@ function toggleInspector() {
     const p = current && current.parentElement;
     if (p) { if (!auditMode) locked = true; setTarget(p); }
   };
+  const isEditable = (n) => n && (n.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName || ''));
   const onKey = (e) => {
-    if (e.key === 'Escape') { if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy(); return; }
+    // Events from the shadow DOM are retargeted to the host, so check the shadow's
+    // own focused node to tell when a note editor (or page field) has focus.
+    const ae = shadow.activeElement;
+    if (e.key === 'Escape') {
+      if (ae && ae.classList && ae.classList.contains('note-edit')) { ae.blur(); return; }
+      if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy();
+      return;
+    }
     // Single-letter shortcuts: s = screenshot, i = copy image to clipboard,
     // c = clear pins, h = toggle hover. Ignore when a modifier is held (e.g. Cmd+S)
-    // or while typing in a page field, so they only fire as bare inspector shortcuts.
+    // or while typing in a note/page field, so they only fire as bare shortcuts.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    const t = e.target;
-    const editable = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
-    if (editable) return;
+    if (isEditable(e.target) || isEditable(ae)) return;
     const k = e.key.toLowerCase();
     if (k === 's') { e.preventDefault(); capture(); }
     else if (k === 'i') { e.preventDefault(); capture(true); }
