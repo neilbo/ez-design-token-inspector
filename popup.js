@@ -84,6 +84,8 @@ function toggleInspector() {
       .bar button.primary{background:#e5484d;}
       .bar button.primary:hover{background:#d13438;}
       .box.pin{border-color:#3ddc97;background:rgba(61,220,151,.10);}
+      .links{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;overflow:visible;}
+      .links line{stroke-width:2;stroke-linecap:round;}
       .tip.pin,.tip.locked{pointer-events:auto;cursor:grab;user-select:none;}
       .tip.pin:active,.tip.locked:active{cursor:grabbing;}
       .tip.pin h4{display:flex;align-items:center;gap:8px;}
@@ -92,6 +94,7 @@ function toggleInspector() {
       .bar button.off{background:#2a2a30;color:#888;}
       .bar button .key{color:inherit;opacity:.7;font-size:14px;margin-left:2px;}
     </style>
+    <svg class="links"></svg>
     <div class="pins"></div>
     <div class="box" hidden></div>
     <div class="tip" hidden></div>
@@ -115,6 +118,7 @@ function toggleInspector() {
   const tip = shadow.querySelector('.tip');
   const bar = shadow.querySelector('.bar');
   const pinsEl = shadow.querySelector('.pins');
+  const linksEl = shadow.querySelector('.links');
   const hintEl = shadow.getElementById('hint');
   shadow.getElementById('x').addEventListener('click', () => destroy());
   shadow.getElementById('shot').addEventListener('click', () => capture());
@@ -328,6 +332,8 @@ function toggleInspector() {
       const ny = Math.max(0, Math.min(window.innerHeight - 28, ev.clientY - offY));
       tipEl.style.left = nx + 'px';
       tipEl.style.top = ny + 'px';
+      const pin = pins.find((p) => p.tip === tipEl);
+      if (pin) updateLink(pin);
     };
     const up = () => {
       dragging = false;
@@ -346,31 +352,79 @@ function toggleInspector() {
     position(el);
   }
 
+  // Each pin gets its own colour so its element box, tooltip ring and connector
+  // line all match — that's how you tell which overlay belongs to which element.
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const PIN_COLORS = ['#3ddc97', '#ff5b8a', '#5b9bff', '#ffce5b', '#b07bff', '#4dd0e1', '#ff8a5b', '#9ccc65'];
+  const tint = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+  // Where the segment from `r`'s centre toward (tx,ty) crosses `r`'s border —
+  // so the connector touches the box/tip edges instead of running under them.
+  const edgePoint = (r, tx, ty) => {
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = tx - cx, dy = ty - cy;
+    if (!dx && !dy) return { x: cx, y: cy };
+    const sx = dx ? (r.width / 2) / Math.abs(dx) : Infinity;
+    const sy = dy ? (r.height / 2) / Math.abs(dy) : Infinity;
+    const s = Math.min(sx, sy);
+    return { x: cx + dx * s, y: cy + dy * s };
+  };
+
+  function updateLink(pin) {
+    const br = pin.box.getBoundingClientRect();
+    const tr = pin.tip.getBoundingClientRect();
+    const bc = { x: br.left + br.width / 2, y: br.top + br.height / 2 };
+    const tc = { x: tr.left + tr.width / 2, y: tr.top + tr.height / 2 };
+    const a = edgePoint(br, tc.x, tc.y); // element end
+    const b = edgePoint(tr, bc.x, bc.y); // tooltip end
+    pin.line.setAttribute('x1', a.x); pin.line.setAttribute('y1', a.y);
+    pin.line.setAttribute('x2', b.x); pin.line.setAttribute('y2', b.y);
+    pin.dot.setAttribute('cx', a.x); pin.dot.setAttribute('cy', a.y);
+  }
+
   // Persistent overlay (audit mode). Stays put with its own close button.
   function addPin(el) {
     if (!el || el === document.documentElement) return;
+    const color = PIN_COLORS[pins.length % PIN_COLORS.length];
     const b = document.createElement('div');
     b.className = 'box pin';
+    b.style.borderColor = color;
+    b.style.background = tint(color, 0.12);
     const t = document.createElement('div');
     t.className = 'tip pin';
+    // A colour ring via box-shadow keeps the tooltip's existing drop shadow and
+    // doesn't shift layout the way a border would.
+    t.style.boxShadow = `0 0 0 2px ${color}, 0 8px 24px rgba(0,0,0,.35)`;
     t.innerHTML = `<h4>${esc(shortSel(el))}<button class="close" title="Remove">✕</button></h4>${tokensHtml(el)}`;
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('stroke', color);
+    const dot = document.createElementNS(SVG_NS, 'circle');
+    dot.setAttribute('r', '3');
+    dot.setAttribute('fill', color);
+    linksEl.appendChild(line);
+    linksEl.appendChild(dot);
     pinsEl.appendChild(b);
     pinsEl.appendChild(t);
-    const pin = { el, box: b, tip: t };
+    const pin = { el, box: b, tip: t, line, dot, color };
     pins.push(pin);
     t.querySelector('.close').addEventListener('click', () => removePin(pin));
     place(b, t, el);
+    updateLink(pin);
   }
 
   function removePin(pin) {
     pin.box.remove();
     pin.tip.remove();
+    pin.line.remove();
+    pin.dot.remove();
     const i = pins.indexOf(pin);
     if (i >= 0) pins.splice(i, 1);
   }
 
   function clearPins() {
-    for (const p of pins) { p.box.remove(); p.tip.remove(); }
+    for (const p of pins) { p.box.remove(); p.tip.remove(); p.line.remove(); p.dot.remove(); }
     pins.length = 0;
   }
 
@@ -413,7 +467,7 @@ function toggleInspector() {
     else if (k === 'c') { e.preventDefault(); clearPins(); }
     else if (k === 'h') { e.preventDefault(); toggleHover(); }
   };
-  const onScroll = () => { if (current && (locked || hoverOn)) position(current); for (const p of pins) place(p.box, p.tip, p.el); };
+  const onScroll = () => { if (current && (locked || hoverOn)) position(current); for (const p of pins) { place(p.box, p.tip, p.el); updateLink(p); } };
 
   document.addEventListener('mousemove', onMove, true);
   document.addEventListener('click', onClick, true);
