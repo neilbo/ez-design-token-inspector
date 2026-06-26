@@ -15,11 +15,12 @@ header button:hover { background: #e4e4e8; }
 .inspect {
   display: flex; align-items: center; justify-content: center; gap: 7px;
   width: 100%; padding: 9px; margin-bottom: 10px;
-  border: 1px solid #d6d6db; border-radius: 6px; background: #fff;
-  font: 600 13px inherit; color: #2b2b30; cursor: pointer;
+  border: 1px solid #5b53ff; border-radius: 6px; background: #5b53ff;
+  font: 600 13px inherit; color: #fff; cursor: pointer;
 }
-.inspect:hover { background: #f6f6f9; }
-.inspect.active { background: #5b53ff; border-color: #5b53ff; color: #fff; }
+.inspect:not(.active):hover { background: #4a43e0; border-color: #4a43e0; }
+.inspect.active { background: #e5484d; border-color: #e5484d; color: #fff; }
+.inspect.active:hover { background: #d13438; border-color: #d13438; }
 .opt {
   display: flex; align-items: center; gap: 7px;
   font-size: 12px; color: #555; margin: 0 0 10px 2px; cursor: pointer;

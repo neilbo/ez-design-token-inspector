@@ -77,8 +77,12 @@ function toggleInspector() {
       .bar button{all:unset;cursor:pointer;color:#fff;padding:5px 10px;border-radius:6px;}
       .bar button.ghost{background:#3a3a40;display:flex;align-items:center;gap:5px;}
       .bar button.ghost:hover{background:#4a4a52;}
-      .bar button.primary{background:#5b53ff;}
-      .bar button.primary:hover{background:#4a43e0;}
+      .bar button#hover{color:#fff;}
+      .bar button#hover .hl{color:#fff;}
+      .bar button#hover.off{background:#5b53ff;color:#fff;}
+      .bar button#hover.off:hover{background:#4a43e0;}
+      .bar button.primary{background:#e5484d;}
+      .bar button.primary:hover{background:#d13438;}
       .box.pin{border-color:#3ddc97;background:rgba(61,220,151,.10);}
       .tip.pin,.tip.locked{pointer-events:auto;cursor:grab;user-select:none;}
       .tip.pin:active,.tip.locked:active{cursor:grabbing;}
@@ -86,20 +90,21 @@ function toggleInspector() {
       .close{all:unset;cursor:pointer;margin-left:auto;color:#ff8a8a;font-size:13px;line-height:1;padding:1px 5px;border-radius:4px;}
       .close:hover{background:#4a1f1f;}
       .bar button.off{background:#2a2a30;color:#888;}
+      .bar button .key{color:inherit;opacity:.7;font-size:14px;margin-left:2px;}
     </style>
     <div class="pins"></div>
     <div class="box" hidden></div>
     <div class="tip" hidden></div>
     <div class="bar">
       <b>Inspecting tokens</b>
-      <span id="hint">click = lock · dbl-click = parent · Esc = exit</span>
-      <button id="hover" class="ghost" title="Toggle the live hover highlight">Hover: on</button>
-      <button id="clear" class="ghost" title="Remove all pinned overlays">Clear</button>
+      <span id="hint">click = lock · dbl-click = parent</span>
+      <button id="hover" class="ghost" title="Toggle the live hover highlight"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2l13 8.5-5.7 1.2 3.5 6.4-2.6 1.4-3.5-6.4L7 18z"/></svg><span class="hl">Hover: off</span> <span class="key">(h)</span></button>
+      <button id="clear" class="ghost" title="Remove all pinned overlays">Clear <span class="key">(c)</span></button>
       <button id="shot" class="ghost" title="Capture a PNG of the visible area">
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M9 3l-1.7 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.3L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
-        Screenshot
+        Screenshot <span class="key">(s)</span>
       </button>
-      <button id="x" class="primary">Exit</button>
+      <button id="x" class="primary">Exit <span class="key">(esc)</span></button>
     </div>`;
 
   const box = shadow.querySelector('.box');
@@ -115,20 +120,22 @@ function toggleInspector() {
   // doesn't sit over an element while you line up a screenshot or review pins).
   let hoverOn = true;
   const hoverBtn = shadow.getElementById('hover');
-  hoverBtn.addEventListener('click', () => {
+  const hoverLbl = hoverBtn.querySelector('.hl');
+  const toggleHover = () => {
     hoverOn = !hoverOn;
-    hoverBtn.textContent = hoverOn ? 'Hover: on' : 'Hover: off';
+    hoverLbl.textContent = hoverOn ? 'Hover: off' : 'Hover: on';
     hoverBtn.classList.toggle('off', !hoverOn);
     if (!hoverOn) { box.hidden = true; tip.hidden = true; }
-  });
+  };
+  hoverBtn.addEventListener('click', toggleHover);
 
   // Visual-audit mode: clicks pin persistent overlays instead of moving one.
   let auditMode = false;
   const pins = [];
   const updateHint = () => {
     hintEl.textContent = auditMode
-      ? 'click = pin · dbl-click = parent · Esc = exit'
-      : 'click = lock · dbl-click = parent · Esc = exit';
+      ? 'click = pin · dbl-click = parent'
+      : 'click = lock · dbl-click = parent';
   };
   const onStorage = (changes, area) => {
     if (area === 'local' && changes.dtfAuditMode) {
@@ -373,7 +380,20 @@ function toggleInspector() {
     const p = current && current.parentElement;
     if (p) { if (!auditMode) locked = true; setTarget(p); }
   };
-  const onKey = (e) => { if (e.key === 'Escape') { if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy(); } };
+  const onKey = (e) => {
+    if (e.key === 'Escape') { if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy(); return; }
+    // Single-letter shortcuts: s = screenshot, c = clear pins, h = toggle hover.
+    // Ignore when a modifier is held (e.g. Cmd+S) or while typing in a page field,
+    // so they only fire as bare inspector shortcuts.
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    const editable = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+    if (editable) return;
+    const k = e.key.toLowerCase();
+    if (k === 's') { e.preventDefault(); capture(); }
+    else if (k === 'c') { e.preventDefault(); clearPins(); }
+    else if (k === 'h') { e.preventDefault(); toggleHover(); }
+  };
   const onScroll = () => { if (current && (locked || hoverOn)) position(current); for (const p of pins) place(p.box, p.tip, p.el); };
 
   document.addEventListener('mousemove', onMove, true);
@@ -464,7 +484,7 @@ async function refreshInspectButton() {
 
 function setInspectActive(active) {
   $('inspect').classList.toggle('active', active);
-  $('inspect-label').textContent = active ? 'Stop inspecting' : 'View Tokens';
+  $('inspect-label').textContent = active ? 'Stop inspecting' : 'Select Element';
 }
 
 $('inspect').addEventListener('click', async () => {
