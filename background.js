@@ -12,6 +12,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: false, error: chrome.runtime.lastError?.message || 'capture failed' });
         return;
       }
+      // Clipboard copy happens page-side (the worker can't reach the clipboard),
+      // so just hand the captured PNG back to the inspector to write itself.
+      if (msg.toClipboard) {
+        sendResponse({ ok: true, dataUrl });
+        return;
+      }
       chrome.downloads.download(
         { url: dataUrl, filename: msg.filename || 'design-tokens.png', saveAs: false },
         (downloadId) => {

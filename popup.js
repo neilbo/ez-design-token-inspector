@@ -104,6 +104,10 @@ function toggleInspector() {
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M9 3l-1.7 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.3L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
         Screenshot <span class="key">(s)</span>
       </button>
+      <button id="copy" class="ghost" title="Copy a PNG of the visible area to the clipboard">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+        Copy <span class="key">(i)</span>
+      </button>
       <button id="x" class="primary">Exit <span class="key">(esc)</span></button>
     </div>`;
 
@@ -114,6 +118,7 @@ function toggleInspector() {
   const hintEl = shadow.getElementById('hint');
   shadow.getElementById('x').addEventListener('click', () => destroy());
   shadow.getElementById('shot').addEventListener('click', () => capture());
+  shadow.getElementById('copy').addEventListener('click', () => capture(true));
   shadow.getElementById('clear').addEventListener('click', () => clearPins());
 
   // Live hover highlight can be paused so it stops following the cursor (and
@@ -146,11 +151,11 @@ function toggleInspector() {
   chrome.storage.onChanged.addListener(onStorage);
   chrome.storage.local.get('dtfAuditMode', (res) => { auditMode = res.dtfAuditMode === true; updateHint(); });
 
-  function capture() {
+  function capture(toClipboard) {
     // The control toolbar is never in the shot. The "Include overlay" preference
     // decides whether the highlight box + token tooltip are kept (annotated shot)
     // or hidden too (clean DevTools-style capture). Wait for a real repaint, then
-    // the worker captures the tab and saves the PNG.
+    // the worker captures the tab. toClipboard => copy the PNG instead of saving it.
     const tag = current ? shortSel(current).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') : 'page';
     chrome.storage.local.get('dtfIncludeOverlay', (res) => {
       const includeOverlay = res.dtfIncludeOverlay !== false; // default: include
@@ -164,16 +169,29 @@ function toggleInspector() {
       } else {
         host.style.display = 'none';
       }
+      const restore = () => {
+        bar.style.visibility = '';
+        box.style.display = '';
+        tip.style.display = '';
+        host.style.display = '';
+      };
       setTimeout(() => {
         chrome.runtime.sendMessage(
-          { type: 'dtf:capture', filename: `design-tokens-${tag || 'page'}.png` },
-          (resp) => {
-            bar.style.visibility = '';
-            box.style.display = '';
-            tip.style.display = '';
-            host.style.display = '';
-            if (chrome.runtime.lastError || !resp || !resp.ok) {
-              console.warn('[Design Token Inspector] screenshot failed:', chrome.runtime.lastError?.message || resp?.error);
+          { type: 'dtf:capture', toClipboard: !!toClipboard, filename: `design-tokens-${tag || 'page'}.png` },
+          async (resp) => {
+            const err = chrome.runtime.lastError;
+            restore();
+            if (err || !resp || !resp.ok) {
+              console.warn('[Design Token Inspector] capture failed:', err?.message || resp?.error);
+              return;
+            }
+            if (toClipboard) {
+              try {
+                const blob = await (await fetch(resp.dataUrl)).blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              } catch (e) {
+                console.warn('[Design Token Inspector] clipboard write failed:', e);
+              }
             }
           }
         );
@@ -382,15 +400,16 @@ function toggleInspector() {
   };
   const onKey = (e) => {
     if (e.key === 'Escape') { if (locked) { locked = false; if (current) { renderTip(current); position(current); } } else destroy(); return; }
-    // Single-letter shortcuts: s = screenshot, c = clear pins, h = toggle hover.
-    // Ignore when a modifier is held (e.g. Cmd+S) or while typing in a page field,
-    // so they only fire as bare inspector shortcuts.
+    // Single-letter shortcuts: s = screenshot, i = copy image to clipboard,
+    // c = clear pins, h = toggle hover. Ignore when a modifier is held (e.g. Cmd+S)
+    // or while typing in a page field, so they only fire as bare inspector shortcuts.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const t = e.target;
     const editable = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
     if (editable) return;
     const k = e.key.toLowerCase();
     if (k === 's') { e.preventDefault(); capture(); }
+    else if (k === 'i') { e.preventDefault(); capture(true); }
     else if (k === 'c') { e.preventDefault(); clearPins(); }
     else if (k === 'h') { e.preventDefault(); toggleHover(); }
   };
