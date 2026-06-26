@@ -3,31 +3,35 @@
 Paste these into the Developer Dashboard fields.
 
 ## Name
-Design Token Inspector
+Drift — Design Token Audit
 
 ## Summary (≤132 chars)
-Find the CSS variables (design tokens) on any page and inspect which tokens each element uses.
+Audit how any live UI uses your design tokens. Pin findings, add notes, and capture a shareable audit. Catch design drift.
 
 ## Category
 Developer Tools
 
 ## Detailed description
-Design Token Inspector helps designers and developers see how a website uses CSS
-custom properties — its "design tokens".
+Drift turns any web page into a quick design-QA pass for your design tokens —
+catch where a live UI drifts from its system before it ships. A simple workflow:
+reveal → audit → annotate → share. For designers QA'ing implemented UIs, devs
+increasing token adoption, and design-system teams auditing consistency.
 
-• Token list — open the popup to list every CSS variable defined on the current
-  page, with resolved values and color swatches. Filter by name, click to copy
-  `var(--token)`.
+• Reveal — open the popup to list every CSS variable (design token) on the page,
+  with resolved values and color swatches; filter by name and click to copy
+  `var(--token)`. Then hover any element to see exactly which tokens it uses
+  (e.g. `color: var(--colorTextLinkDefault)`) — including font shorthands and
+  chained variables, resolved to their final value. Double-click to climb to a
+  parent element.
 
-• Inspect mode — click "View Tokens" to highlight elements as you hover and see
-  exactly which tokens they use (e.g. `color: var(--colorTextLinkDefault)`),
-  including font shorthands and chained variables, resolved to their final value.
-  Double-click to climb to a parent element; drag tooltips out of the way.
+• Audit — pin overlays on multiple elements at once to compare token usage across
+  a screen. Each pin is color-coded with a connector line back to its element, so
+  it stays legible even when you drag the tooltips out of the way.
 
-• Visual audit — optionally pin overlays on multiple elements at once to compare
-  token usage across a screen.
+• Annotate — add a note to any pinned finding to record what's wrong or what to fix.
 
-• Screenshot — capture an annotated PNG of your findings to your Downloads folder.
+• Share — capture an annotated PNG of your findings (to Downloads or straight to
+  the clipboard) to hand off to your team.
 
 Everything runs locally in your browser. No data is collected or sent anywhere.
 
@@ -43,6 +47,8 @@ page.
   draw the highlight overlay.
 - downloads: Save a screenshot to the user's Downloads folder when they click the
   Screenshot button.
+- clipboardWrite: Copy a screenshot of the audit to the clipboard when the user
+  clicks the Copy button, so they can paste it into another app.
 - storage: Remember the user's toggle preferences (screenshot/overlay/audit) locally.
 
 ## Host permission justification

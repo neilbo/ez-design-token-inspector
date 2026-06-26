@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Design Token Inspector",
+  "name": "Drift — Design Token Audit",
   "version": "1.0.0",
-  "description": "Find the CSS variables (design tokens) used on a page and inspect which tokens each element uses.",
+  "description": "Audit how any live UI uses your design tokens — inspect, pin, annotate, and capture a shareable audit. Catch design drift.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -14,7 +14,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Design Token Inspector",
+    "default_title": "Drift",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

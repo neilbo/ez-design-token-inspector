@@ -1,8 +1,19 @@
-# Design Token Inspector
+# Drift
 
-A tiny Chrome extension (Manifest V3) that lists the **CSS variables (design tokens)**
-used on the current page — e.g. `--colorTextLinkDefault` — with their resolved values
-and a swatch for colors.
+**Catch design drift before it ships.** A Manifest V3 Chrome extension to audit how a
+live UI uses its **design tokens** — all locally in your browser. It's a quick design-QA
+workflow: **reveal → audit → annotate → share.**
+
+1. **Reveal** — list every CSS variable (design token) a page uses — e.g.
+   `--colorTextLinkDefault` — with resolved values and color swatches, and hover any
+   element to see exactly which tokens it pulls.
+2. **Audit** — pin multiple elements at once, color-coded with connector lines, to
+   compare token usage across a screen.
+3. **Annotate** — add notes to each pinned finding.
+4. **Share** — capture an annotated screenshot (download or copy to clipboard) to hand off.
+
+Built for designers QA'ing implemented UIs, devs increasing token adoption, and
+design-system teams auditing consistency.
 
 ## Install
 
@@ -18,7 +29,7 @@ No build step.
 custom property it finds, sorted by name. Type in the filter box to narrow the list; click
 any row to copy `var(--token-name)` to the clipboard.
 
-**Inspect mode:** click **View Tokens** (the pointer button). The popup closes and the
+**Inspect mode:** click **Select Element** (the pointer button). The popup closes and the
 page enters inspect mode:
 
 - **Hover** an element to highlight it and see the design tokens it uses

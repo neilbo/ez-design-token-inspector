@@ -104,7 +104,7 @@ function toggleInspector() {
     <div class="box" hidden></div>
     <div class="tip" hidden></div>
     <div class="bar">
-      <b>Inspecting tokens</b>
+      <b>Drift</b>
       <span id="hint">click = lock · dbl-click = parent</span>
       <button id="hover" class="ghost" title="Toggle the live hover highlight"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2l13 8.5-5.7 1.2 3.5 6.4-2.6 1.4-3.5-6.4L7 18z"/></svg><span class="hl">Hover: off</span> <span class="key">(h)</span></button>
       <button id="clear" class="ghost" title="Remove all pinned overlays">Clear <span class="key">(c)</span></button>
@@ -186,12 +186,12 @@ function toggleInspector() {
       };
       setTimeout(() => {
         chrome.runtime.sendMessage(
-          { type: 'dtf:capture', toClipboard: !!toClipboard, filename: `design-tokens-${tag || 'page'}.png` },
+          { type: 'dtf:capture', toClipboard: !!toClipboard, filename: `drift-${tag || 'page'}.png` },
           async (resp) => {
             const err = chrome.runtime.lastError;
             restore();
             if (err || !resp || !resp.ok) {
-              console.warn('[Design Token Inspector] capture failed:', err?.message || resp?.error);
+              console.warn('[Drift] capture failed:', err?.message || resp?.error);
               return;
             }
             if (toClipboard) {
@@ -199,7 +199,7 @@ function toggleInspector() {
                 const blob = await (await fetch(resp.dataUrl)).blob();
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
               } catch (e) {
-                console.warn('[Design Token Inspector] clipboard write failed:', e);
+                console.warn('[Drift] clipboard write failed:', e);
               }
             }
           }
