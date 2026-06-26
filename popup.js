@@ -98,11 +98,14 @@ function toggleInspector() {
       .note-edit:empty:before{content:attr(data-ph);color:#777;}
       .bar button.off{background:#2a2a30;color:#888;}
       .bar button .key{color:inherit;opacity:.7;font-size:14px;margin-left:2px;}
+      .toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(6px);background:#1e1e22;color:#fff;font:600 12px -apple-system,BlinkMacSystemFont,sans-serif;padding:9px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;}
+      .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     </style>
     <svg class="links"></svg>
     <div class="pins"></div>
     <div class="box" hidden></div>
     <div class="tip" hidden></div>
+    <div class="toast"></div>
     <div class="bar">
       <b>Drift</b>
       <span id="hint">click = lock · dbl-click = parent</span>
@@ -124,7 +127,17 @@ function toggleInspector() {
   const bar = shadow.querySelector('.bar');
   const pinsEl = shadow.querySelector('.pins');
   const linksEl = shadow.querySelector('.links');
+  const toastEl = shadow.querySelector('.toast');
   const hintEl = shadow.getElementById('hint');
+
+  // Brief snackbar confirming an action (works for both buttons and shortcuts).
+  let toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.classList.remove('show'); toastTimer = null; }, 1600);
+  }
   shadow.getElementById('x').addEventListener('click', () => destroy());
   shadow.getElementById('shot').addEventListener('click', () => capture());
   shadow.getElementById('copy').addEventListener('click', () => capture(true));
@@ -140,6 +153,7 @@ function toggleInspector() {
     hoverLbl.textContent = hoverOn ? 'Hover: off' : 'Hover: on';
     hoverBtn.classList.toggle('off', !hoverOn);
     if (!hoverOn) { box.hidden = true; tip.hidden = true; }
+    showToast(hoverOn ? '✓ Hover on' : '✓ Hover off');
   };
   hoverBtn.addEventListener('click', toggleHover);
 
@@ -192,15 +206,20 @@ function toggleInspector() {
             restore();
             if (err || !resp || !resp.ok) {
               console.warn('[Drift] capture failed:', err?.message || resp?.error);
+              showToast('⚠ Capture failed');
               return;
             }
             if (toClipboard) {
               try {
                 const blob = await (await fetch(resp.dataUrl)).blob();
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showToast('✓ Image copied to clipboard');
               } catch (e) {
                 console.warn('[Drift] clipboard write failed:', e);
+                showToast('⚠ Copy failed');
               }
+            } else {
+              showToast('✓ Screenshot saved');
             }
           }
         );
@@ -442,8 +461,10 @@ function toggleInspector() {
   }
 
   function clearPins() {
+    const n = pins.length;
     for (const p of pins) { p.box.remove(); p.tip.remove(); p.line.remove(); p.dot.remove(); }
     pins.length = 0;
+    if (n) showToast(`✓ Cleared ${n} pin${n > 1 ? 's' : ''}`);
   }
 
   const inHost = (e) => e.composedPath().includes(host);

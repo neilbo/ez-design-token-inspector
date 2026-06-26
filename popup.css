@@ -28,7 +28,7 @@ header button:hover { background: #e4e4e8; }
 .opt input { margin: 0; }
 .donate {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 9px; margin-bottom: 10px;
+  flex: none; width: 100%; padding: 9px; margin-top: 10px;
   background: #5b53ff; color: #fff; border-radius: 6px;
   font-size: 13px; font-weight: 600; text-decoration: none;
 }
