@@ -1,14 +1,26 @@
 {
   "manifest_version": 3,
   "name": "Design Token Finder",
-  "version": "0.1.0",
-  "description": "Find the CSS variables (design tokens) used on the current page.",
+  "version": "1.0.0",
+  "description": "Find the CSS variables (design tokens) used on a page and inspect which tokens each element uses.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["scripting", "activeTab", "downloads", "storage"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_title": "Design Token Finder",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 }

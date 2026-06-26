@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 800px; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 700px at 78% 18%, #efeefe 0%, #f6f6f9 45%, #eef0f4 100%);
+    display: flex; align-items: center; gap: 56px; padding: 0 72px;
+    color: #1c1c22;
+  }
+  /* ---- left: pitch ---- */
+  .pitch { width: 470px; flex: none; }
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 30px; }
+  .logo {
+    width: 72px; height: 72px; border-radius: 18px; background: #5b53ff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 28px rgba(91,83,255,.4);
+  }
+  .brand .tag { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #5b53ff; }
+  .brand .nm { font-size: 22px; font-weight: 700; }
+  h1 { font-size: 52px; line-height: 1.06; letter-spacing: -.02em; margin-bottom: 20px; }
+  h1 .accent { color: #5b53ff; }
+  .sub { font-size: 19px; line-height: 1.5; color: #5a5a66; margin-bottom: 34px; }
+  ul { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+  li { display: flex; align-items: center; gap: 13px; font-size: 17px; color: #2b2b34; }
+  .chk { width: 26px; height: 26px; border-radius: 8px; background: #e9e7ff; color: #5b53ff;
+         display: flex; align-items: center; justify-content: center; flex: none; font-weight: 800; font-size: 15px; }
+  /* ---- right: product mock ---- */
+  .mock {
+    flex: 1; height: 600px; border-radius: 18px; background: #fff; position: relative;
+    box-shadow: 0 30px 80px rgba(30,30,50,.22); overflow: hidden; border: 1px solid #e6e6ee;
+  }
+  .winbar { height: 46px; background: #f3f3f7; border-bottom: 1px solid #e6e6ee; display: flex; align-items: center; padding: 0 16px; gap: 8px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .urlbar { margin-left: 16px; height: 26px; flex: 1; max-width: 420px; background: #fff; border: 1px solid #e2e2ea; border-radius: 8px; display: flex; align-items: center; padding: 0 12px; color: #9a9aa6; font-size: 12px; }
+  .page { padding: 40px 44px; position: relative; }
+  .ph-title { font-size: 30px; font-weight: 700; color: #20202a; margin-bottom: 8px; display: inline-block;
+              outline: 2px solid #5b53ff; outline-offset: 5px; border-radius: 3px; }
+  .ph-sub { color: #8a8a96; font-size: 15px; margin: 14px 0 30px; }
+  .bar { height: 14px; border-radius: 7px; background: #ececf2; margin: 12px 0; }
+  .bar.w1 { width: 86%; } .bar.w2 { width: 72%; } .bar.w3 { width: 79%; } .bar.w4 { width: 54%; }
+  .chips { display: flex; gap: 12px; margin-top: 28px; }
+  .chip { padding: 9px 16px; border-radius: 9px; background: #f0f0f5; color: #6a6a76; font-size: 13px; font-weight: 600; }
+  .chip.go { background: #e7f7ee; color: #1f7a3f; }
+  /* token tooltip */
+  .tip {
+    position: absolute; top: 80px; right: 28px; width: 318px; background: #1e1e22; color: #eaeaee;
+    border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden;
+    font-size: 13px;
+  }
+  .tip h4 { background: #27272c; padding: 11px 14px; font: 600 12px ui-monospace, Menlo, monospace; color: #c8c8cc; }
+  .tip .row { display: flex; align-items: center; gap: 9px; padding: 9px 14px; border-top: 1px solid #2c2c31; }
+  .tip .sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,.18); flex: none; }
+  .tip .p { color: #9a9aa0; } .tip .v { color: #8ac6ff; font-family: ui-monospace, Menlo, monospace; }
+  .tip .rv { margin-left: auto; color: #7a7a82; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .tip .font { display: block; padding: 9px 14px; border-top: 1px solid #2c2c31; }
+  .tip .font .rv2 { color: #7a7a82; font-family: ui-monospace, Menlo, monospace; font-size: 11px; line-height: 1.45; margin-top: 3px; }
+  .pill {
+    position: absolute; bottom: 24px; left: 44px;
+    background: #1e1e22; color: #eee; border-radius: 999px; padding: 8px 8px 8px 16px;
+    display: flex; align-items: center; gap: 12px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  }
+  .pill b { color: #fff; } .pill span { color: #9a9aa0; }
+  .pill .x { background: #5b53ff; color: #fff; padding: 5px 12px; border-radius: 7px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="pitch">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="40" height="40"><path fill="#fff" d="M7 2l13 8.5-5.7 1.2 3.5 6.4-2.6 1.4-3.5-6.4L7 18z"/></svg>
+      </div>
+      <div>
+        <div class="tag">Chrome Extension</div>
+        <div class="nm">Design Token Finder</div>
+      </div>
+    </div>
+    <h1>See the <span class="accent">design tokens</span> behind any UI</h1>
+    <p class="sub">Inspect any web page and reveal the CSS variables each element uses — colors, typography, spacing.</p>
+    <ul>
+      <li><span class="chk">✓</span> List every CSS variable on the page</li>
+      <li><span class="chk">✓</span> Hover an element to see the tokens it uses</li>
+      <li><span class="chk">✓</span> Pin, audit &amp; screenshot your findings</li>
+    </ul>
+  </div>
+
+  <div class="mock">
+    <div class="winbar">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <div class="urlbar">app.example.com/dashboard</div>
+    </div>
+    <div class="page">
+      <div class="ph-title">Project Dashboard</div>
+      <div class="ph-sub">Overview of your latest releases</div>
+      <div class="bar w1"></div>
+      <div class="bar w2"></div>
+      <div class="bar w3"></div>
+      <div class="bar w4"></div>
+      <div class="chips">
+        <span class="chip">Development</span>
+        <span class="chip">Staging</span>
+        <span class="chip go">Production ✓</span>
+      </div>
+
+      <div class="tip">
+        <h4>h1.css-1a7p2dd</h4>
+        <div class="font">
+          <span><span class="p">font:</span> <span class="v">var(--textHeadingMedium)</span></span>
+          <div class="rv2">600 1.25rem/1.75rem "Segoe UI", system-ui, sans-serif</div>
+        </div>
+        <div class="row"><span class="sw" style="background:#F4F6F8"></span><span class="p">color:</span> <span class="v">var(--colorTextPrimary)</span><span class="rv">#F4F6F8</span></div>
+        <div class="row"><span class="sw" style="background:#5b53ff"></span><span class="p">color:</span> <span class="v">var(--linkText)</span><span class="rv">#5B53FF</span></div>
+      </div>
+
+      <div class="pill"><b>Inspecting tokens</b><span>click = lock · dbl-click = parent</span><span class="x">Exit</span></div>
+    </div>
+  </div>
+</body>
+</html>
